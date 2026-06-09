@@ -64,6 +64,7 @@ curl -X POST $BASE/search -H 'Content-Type: application/json' \
 - **Dimension is fixed at creation.** Changing `INDEX_DIM` after vectors are added requires a `/reset` (or a fresh volume).
 - **Persistence** depends on a volume mounted at `/data`. Without one, the index is lost on redeploy.
 - TurboVec wheels target `x86-64-v3` (Haswell 2013+), which Railway's infrastructure supports.
+- Re-adding an existing ID returns `409`. Deleting an unknown ID is treated as a no-op by the binding (no error).
 
 ## License
 
