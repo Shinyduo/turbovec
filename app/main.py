@@ -150,17 +150,19 @@ def search(req: SearchRequest):
     q = np.asarray(req.query, dtype=np.float32)
     if q.ndim != 1 or q.shape[0] != DIM:
         raise HTTPException(400, f"query must be a 1D vector of dimension {DIM}")
+    # TurboVec expects a 2D batch of queries; send a single-row batch.
+    queries = np.ascontiguousarray(q.reshape(1, DIM), dtype=np.float32)
     allow = (
-        np.asarray(req.allowlist, dtype=np.uint64)
+        np.ascontiguousarray(np.asarray(req.allowlist, dtype=np.uint64))
         if req.allowlist is not None
         else None
     )
     with _lock:
-        scores, ids = _index.search(q, k=req.k, allowlist=allow)
-    hits = [
-        SearchHit(id=int(i), score=float(s))
-        for s, i in zip(np.asarray(scores).ravel(), np.asarray(ids).ravel())
-    ]
+        scores, ids = _index.search(queries, k=req.k, allowlist=allow)
+    # Results come back as 2D (one row per query); take the first row.
+    scores = np.asarray(scores).reshape(-1)
+    ids = np.asarray(ids).reshape(-1)
+    hits = [SearchHit(id=int(i), score=float(s)) for s, i in zip(scores, ids)]
     return SearchResponse(results=hits)
 
 
