@@ -63,14 +63,26 @@ app = FastAPI(
 )
 
 
+def _index_len(idx) -> int:
+    """Best-effort live-vector count across binding versions."""
+    for probe in (lambda: len(idx), lambda: idx.len(), lambda: idx.count()):
+        try:
+            return int(probe())
+        except Exception:
+            continue
+    return 0
+
+
 @app.on_event("startup")
 def _startup() -> None:
-    global _index
+    global _index, _count
     os.makedirs(DATA_DIR, exist_ok=True)
     if os.path.exists(INDEX_PATH):
         _index = IdMapIndex.load(INDEX_PATH)
+        _count = _index_len(_index)
     else:
         _index = _new_index()
+        _count = 0
 
 
 def require_api_key(x_api_key: Optional[str] = Header(default=None)) -> None:
