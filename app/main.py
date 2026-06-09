@@ -148,9 +148,14 @@ def add_vectors(req: AddRequest):
         raise HTTPException(
             400, f"each vector must have dimension {DIM}, got shape {list(arr.shape)}"
         )
-    ids = np.asarray(req.ids, dtype=np.uint64)
+    arr = np.ascontiguousarray(arr)
+    ids = np.ascontiguousarray(np.asarray(req.ids, dtype=np.uint64))
     with _lock:
-        _index.add_with_ids(arr, ids)
+        try:
+            _index.add_with_ids(arr, ids)
+        except Exception as e:
+            # Most commonly a duplicate id; surface as a client error, not a 500.
+            raise HTTPException(409, f"add failed (duplicate id?): {e}")
         _count += len(req.ids)
         if AUTO_SAVE:
             _save_locked()
@@ -182,7 +187,10 @@ def search(req: SearchRequest):
 def remove_vector(vector_id: int):
     global _count
     with _lock:
-        _index.remove(np.uint64(vector_id))
+        try:
+            _index.remove(np.uint64(vector_id))
+        except Exception as e:
+            raise HTTPException(404, f"remove failed (unknown id?): {e}")
         _count = max(0, _count - 1)
         if AUTO_SAVE:
             _save_locked()
