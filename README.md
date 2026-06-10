@@ -59,6 +59,55 @@ curl -X POST $BASE/search -H 'Content-Type: application/json' \
   -d '{"query": [0.1, ...], "k": 5}'
 ```
 
+## Creating and querying data
+
+TurboVec stores and searches **raw float vectors (embeddings) plus a uint64 ID** — it does not generate embeddings itself, and it does not store your original text. You create the data by:
+
+1. **Embedding** your content (text, images, code) with an embedding model of your choice.
+2. **Ingesting** the resulting vectors via `POST /vectors`, each paired with an ID you control (typically your database primary key).
+3. **Querying** by embedding the query with the *same* model and calling `POST /search`.
+4. **Joining** the returned IDs back to the original content in your own store.
+
+```
+text/images ──► embedding model ──► vector ──► POST /vectors
+query text  ──► embedding model ──► vector ──► POST /search ──► IDs ──► your DB
+```
+
+> The embedding model's output dimension must equal `INDEX_DIM`. Common values: `1536` (OpenAI `text-embedding-3-small` / `ada-002`), `3072` (`text-embedding-3-large`), `384`–`768` (most `sentence-transformers` models). Set `INDEX_DIM` before adding any vectors.
+
+### End-to-end example (OpenAI embeddings)
+
+```python
+import openai, requests
+
+BASE = "https://your-app.up.railway.app"
+client = openai.OpenAI()  # OPENAI_API_KEY in env
+
+docs = {
+    101: "Railway is a deployment platform for apps and databases.",
+    102: "TurboVec compresses embedding vectors for fast search.",
+    103: "Cats are small domesticated carnivorous mammals.",
+}
+
+# 1. CREATE DATA: embed each doc, push vector + id
+ids, texts = list(docs.keys()), list(docs.values())
+embs = [d.embedding for d in client.embeddings.create(
+    model="text-embedding-3-small", input=texts).data]
+requests.post(f"{BASE}/vectors", json={"vectors": embs, "ids": ids})
+
+# 2. SEARCH: embed the query, get back matching ids
+q = client.embeddings.create(
+    model="text-embedding-3-small",
+    input="how do I host my app?").data[0].embedding
+hits = requests.post(f"{BASE}/search", json={"query": q, "k": 2}).json()
+
+# 3. JOIN ids back to your own text
+for h in hits["results"]:
+    print(round(h["score"], 3), docs[h["id"]])   # doc 101 ranks first
+```
+
+A local embedding model works too — anything that produces a fixed-length float vector. For example, with `sentence-transformers` set `INDEX_DIM=384` and embed via `SentenceTransformer("all-MiniLM-L6-v2").encode(texts).tolist()` before posting.
+
 ## Notes
 
 - **Dimension is fixed at creation.** Changing `INDEX_DIM` after vectors are added requires a `/reset` (or a fresh volume).

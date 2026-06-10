@@ -37,7 +37,6 @@ Here are common use cases for the open-source compressed vector search engine:
 * Building semantic search over large text, code, or product catalogs where storing full float32 vectors would be too expensive in memory.
 * Running multi-tenant retrieval with filtered (allowlist) search to restrict results to a single customer, workspace, or candidate set.
 * Replacing a managed vector database with a private, in-VPC embedding API for compliance-sensitive deployments.
-* Serving recommendation and deduplication workloads needing fast search over millions of compressed vectors.
 
 ![TurboVec vector search API dashboard](https://res.cloudinary.com/dh2nt6hgh/image/upload/v1777637290/turbovec_dashboard_placeholder.webp "TurboVec open source compressed vector search API")
 
@@ -47,7 +46,7 @@ When hosting TurboVec on Railway, you need a persistent volume mounted at `/data
 
 ### Deployment Dependencies for Managed TurboVec Service (OSS Vector Search)
 
-A managed TurboVec service on Railway requires only the application container and a single persistent volume for the `.tvim` index file. There is no PostgreSQL, Redis, or message-queue dependency, keeping the footprint small and the cost low.
+A managed TurboVec service on Railway requires only the application container and a single persistent volume for the `.tvim` index file. There is no PostgreSQL, Redis, or message-queue dependency, keeping the footprint and cost low.
 
 ### Implementation Details for TurboVec (Using TurboVec official Python package)
 
@@ -61,7 +60,7 @@ This template installs the official `turbovec` PyPI package (prebuilt wheels, no
 
 ### TurboVec vs FAISS (FAISS Alternative)
 * **Served by Default:** This template exposes TurboVec as a ready REST API, while FAISS is a raw library you must wrap and operate yourself.
-* **Online Ingestion:** TurboVec ingests vectors with no training phase or parameter tuning, unlike many FAISS index types.
+* **Online Ingestion:** TurboVec ingests vectors with no training phase or tuning, unlike many FAISS index types.
 
 ### TurboVec vs Qdrant (Qdrant Alternative)
 * **Footprint:** TurboVec needs only a container and a volume, while Qdrant runs as a heavier standalone service with its own storage.
@@ -69,11 +68,10 @@ This template installs the official `turbovec` PyPI package (prebuilt wheels, no
 
 ### TurboVec vs Weaviate (Weaviate Alternative)
 * **Simplicity:** TurboVec focuses purely on fast compressed vector search, while Weaviate bundles a schema layer, modules, and GraphQL.
-* **Cost:** Self hosted TurboVec on Railway has no per-object or per-dimension fees.
 
 ## How to use TurboVec (the OSS vector search engine)?
 
-After deploying, set `INDEX_DIM` to match your embedding model, then POST vectors with IDs to `/vectors` and query them with `/search`, optionally restricting results with an allowlist.
+TurboVec stores and searches embedding vectors; it does not generate them, so you create data by embedding your content with any embedding model first. Set `INDEX_DIM` to match that model (for example 1536 for OpenAI `text-embedding-3-small`), then `POST` the resulting vectors with your own IDs to `/vectors`. To query, embed the search text with the same model and call `/search`, optionally passing an `allowlist` of candidate IDs for hybrid retrieval. Search returns IDs and scores, which you join back to the original documents in your own database.
 
 ## How to self host TurboVec on other VPS Services (TurboVec self hosting guide)
 
@@ -92,27 +90,27 @@ Set up the API configuration such as:
 for your embeddings and storage path.
 
 ### Start the TurboVec Application
-Run `uvicorn app.main:app --host 0.0.0.0 --port 8080` to start the API and expose port `8080` through your VPS firewall or reverse proxy.
+Run `uvicorn app.main:app --host 0.0.0.0 --port 8080` to start the API and expose port `8080` through your firewall or reverse proxy.
 
 ## Official Pricing of TurboVec (TurboVec pricing)
-TurboVec is **open source** and completely free to self host under the MIT license. There are no per-query charges, per-vector fees, or premium tiers; you only pay for the infrastructure running it. Hosting on Railway typically costs $5-$10/month depending on index size and query volume.
+TurboVec is **open source** and completely free to self host under the MIT license. There are no per-query charges, per-vector fees, or premium tiers; you only pay for the infrastructure running it.
 
 ## TurboVec cloud vs self hosted comparison (Pricing, features, costs, and more)
-TurboVec is a self-hosted-only library with no managed cloud offering. Self hosting gives you full control, private data, and no per-query caps. Railway provides the simplest deployment path with a managed build and a persistent volume.
+TurboVec is a self-hosted-only library with no managed cloud offering. Self hosting gives you full control, private data, and no per-query caps, with Railway providing the simplest path via a managed build and a persistent volume.
 
 ### Monthly cost of self hosting TurboVec on Railway
-The TurboVec self hosting cost on Railway is typically $5-$10/month with normal usage, covering the application container and persistent storage for the compressed index with no per-query or per-vector fees.
+The TurboVec self hosting cost on Railway is typically $5-$10/month, covering the application container and persistent storage for the compressed index with no per-query or per-vector fees.
 
 ### System Requirements for Hosting TurboVec on a VPS
-TurboVec requires at least 1 vCPU and 512MB RAM (more for large indexes), an x86-64-v3 (Haswell 2013+) or ARM NEON CPU, and storage sized to your compressed corpus, with Docker installed.
+TurboVec requires at least 1 vCPU and 512MB RAM (more for large indexes), an x86-64-v3 (Haswell 2013+) or ARM NEON CPU, and storage sized to your corpus, with Docker installed.
 
 ## Frequently Asked Questions (FAQs)
 
 ### What is TurboVec self hosted?
-TurboVec self hosted means running your own compressed vector search API (on Railway, a VPS, or Docker) instead of a managed vector database like Pinecone, giving you full data ownership, privacy, and no per-query fees.
+TurboVec self hosted means running your own compressed vector search API (on Railway, a VPS, or Docker) instead of a managed vector database like Pinecone, giving you data ownership, privacy, and no per-query fees.
 
 ### How much does TurboVec self hosting cost on Railway?
-The TurboVec self hosting cost on Railway is typically $5-$10/month with normal usage, covering the container and a persistent volume with no per-query or per-vector charges.
+The TurboVec self hosting cost on Railway is typically $5-$10/month, covering the container and a persistent volume with no per-query or per-vector charges.
 
 ### Is TurboVec free to use?
 Yes, TurboVec is open source and free to self host under the MIT license. You only pay for the infrastructure (like Railway or a VPS) that runs it.
