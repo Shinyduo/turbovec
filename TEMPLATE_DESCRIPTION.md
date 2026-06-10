@@ -50,7 +50,7 @@ A managed TurboVec service on Railway requires only the application container an
 
 ### Implementation Details for TurboVec (Using TurboVec official Python package)
 
-This template installs the official `turbovec` PyPI package (prebuilt wheels, no Rust toolchain needed) and serves it through a FastAPI app on the Railway-injected `PORT` with a healthcheck at `/health`. Key environment variables include `INDEX_DIM` (embedding dimensionality, default 1536), `INDEX_BIT_WIDTH` (2 or 4), `DATA_DIR=/data`, and an optional `API_KEY`. The index uses stable external uint64 IDs that survive deletions.
+This template installs the official `turbovec` PyPI package (prebuilt wheels, no Rust toolchain needed) and serves it through a FastAPI app on the Railway-injected `PORT` with a healthcheck at `/health`. Key environment variables include `INDEX_DIM` (embedding dimensionality, default 1536), `INDEX_BIT_WIDTH` (2 or 4), `DATA_DIR=/data`, and an optional `API_KEY` that, when set, is enforced on every request via an `X-API-Key` header. The index uses stable external uint64 IDs that survive deletions.
 
 ## How does TurboVec compare against other vector search platforms
 
@@ -71,7 +71,7 @@ This template installs the official `turbovec` PyPI package (prebuilt wheels, no
 
 ## How to use TurboVec (the OSS vector search engine)?
 
-TurboVec stores and searches embedding vectors; it does not generate them, so you create data by embedding your content with any embedding model first. Set `INDEX_DIM` to match that model (for example 1536 for OpenAI `text-embedding-3-small`), then `POST` the resulting vectors with your own IDs to `/vectors`. To query, embed the search text with the same model and call `/search`, optionally passing an `allowlist` of candidate IDs for hybrid retrieval. Search returns IDs and scores, which you join back to the original documents in your own database.
+TurboVec stores and searches embedding vectors; it does not generate them, so you create data by embedding your content with an embedding model first. Set `INDEX_DIM` to match that model (e.g. 1536 for OpenAI `text-embedding-3-small`), then `POST` the vectors with your own IDs to `/vectors`. To query, embed the search text with the same model and call `/search`, optionally with an `allowlist` of candidate IDs. Search returns IDs and scores, which you join back to documents in your own database.
 
 ## How to self host TurboVec on other VPS Services (TurboVec self hosting guide)
 
@@ -90,7 +90,7 @@ Set up the API configuration such as:
 for your embeddings and storage path.
 
 ### Start the TurboVec Application
-Run `uvicorn app.main:app --host 0.0.0.0 --port 8080` to start the API and expose port `8080` through your firewall or reverse proxy.
+Run `uvicorn app.main:app --host 0.0.0.0 --port 8080` to start the API and expose it through your firewall or reverse proxy.
 
 ## Official Pricing of TurboVec (TurboVec pricing)
 TurboVec is **open source** and completely free to self host under the MIT license. There are no per-query charges, per-vector fees, or premium tiers; you only pay for the infrastructure running it.

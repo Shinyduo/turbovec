@@ -45,17 +45,27 @@ TurboVec ships as a **library**, not a server. This template wraps it in a thin 
 | `POST` | `/save` | - | Force-persist the index |
 | `POST` | `/reset` | - | Drop all vectors |
 
+## Authentication
+
+If `API_KEY` is set (recommended for any public deployment), every request except `GET /health` must include the key in an `X-API-Key` header. Requests without it, or with the wrong value, get `401 Unauthorized`. Leave `API_KEY` unset to run the API open (no auth).
+
+```bash
+# Authenticated request
+curl -H "X-API-Key: $API_KEY" $BASE/
+```
+
 ### Example
 
 ```bash
 BASE=https://your-app.up.railway.app
+KEY=your-api-key   # the value you set for API_KEY
 
 # Add two 1536-dim vectors
-curl -X POST $BASE/vectors -H 'Content-Type: application/json' \
+curl -X POST $BASE/vectors -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
   -d '{"vectors": [[0.1, ...], [0.2, ...]], "ids": [1001, 1002]}'
 
 # Search
-curl -X POST $BASE/search -H 'Content-Type: application/json' \
+curl -X POST $BASE/search -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
   -d '{"query": [0.1, ...], "k": 5}'
 ```
 
@@ -81,6 +91,7 @@ query text  ──► embedding model ──► vector ──► POST /search �
 import openai, requests
 
 BASE = "https://your-app.up.railway.app"
+HEADERS = {"X-API-Key": "your-api-key"}   # omit if API_KEY is unset
 client = openai.OpenAI()  # OPENAI_API_KEY in env
 
 docs = {
@@ -93,13 +104,13 @@ docs = {
 ids, texts = list(docs.keys()), list(docs.values())
 embs = [d.embedding for d in client.embeddings.create(
     model="text-embedding-3-small", input=texts).data]
-requests.post(f"{BASE}/vectors", json={"vectors": embs, "ids": ids})
+requests.post(f"{BASE}/vectors", headers=HEADERS, json={"vectors": embs, "ids": ids})
 
 # 2. SEARCH: embed the query, get back matching ids
 q = client.embeddings.create(
     model="text-embedding-3-small",
     input="how do I host my app?").data[0].embedding
-hits = requests.post(f"{BASE}/search", json={"query": q, "k": 2}).json()
+hits = requests.post(f"{BASE}/search", headers=HEADERS, json={"query": q, "k": 2}).json()
 
 # 3. JOIN ids back to your own text
 for h in hits["results"]:
